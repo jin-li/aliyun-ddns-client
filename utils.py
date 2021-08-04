@@ -69,7 +69,7 @@ class DDNSUtils(object):
         @return  IP address or None
         """
         try:
-            ret = requests.get("http://members.3322.org/dyndns/getip")
+            ret = requests.get("https://ipinfo.io/ip")
         except requests.RequestException as ex:
             cls.err("network problem:{0}".format(ex))
             return None
@@ -93,16 +93,21 @@ class DDNSUtils(object):
 
     @classmethod
     def get_interface_ipv6_address(cls, ifname):
-        import netifaces as ni
         try:
-            ip = ni.ifaddresses(ifname)[ni.AF_INET6][0]['addr']
-            return ip
-        except KeyError:
-            cls.err("Can't find the interface {}".format(ifname))
+            ret = requests.get("https://ipv6.icanhazip.com")
+        except requests.RequestException as ex:
+            cls.err("network problem:{0}".format(ex))
             return None
 
+        if ret.status_code != requests.codes.ok:
+            cls.err("Failed to get current public IP: {0}\n{1}" \
+                    .format(ret.status_code, ret.content))
+            return None
+
+        return ret.content.decode('utf-8').rstrip("\n")
+
     @classmethod
-    def get_dns_resolved_ip(cls, subdomain, domainname):
+    def get_dns_resolved_ipv4(cls, subdomain, domainname):
         """
         Get current IP address resolved by DNS server
 
@@ -120,6 +125,31 @@ class DDNSUtils(object):
                 hostname = "{0}.{1}".format(subdomain, domainname)
 
             ip_addr = socket.gethostbyname(hostname)
+        except socket_error as ex:
+            cls.err("DomainRecord[{0}] cannot be resolved because of:{1}" \
+                     .format(hostname, ex))
+
+        return ip_addr
+
+    @classmethod
+    def get_dns_resolved_ipv6(cls, subdomain, domainname):
+        """
+        Get current IP address resolved by DNS server
+
+        :param subdomain:  sub domain
+        :param domainname:     domain name
+        :return:  IP address or None
+        """
+        ip_addr = None
+        try:
+            if subdomain == "@":
+                hostname = domainname 
+            elif subdomain == "*":
+                hostname = "{0}.{1}".format(cls.RANDOM_UUID, domainname)
+            else:
+                hostname = "{0}.{1}".format(subdomain, domainname)
+
+            ip_addr = socket.getaddrinfo(hostname, None, socket.AF_INET6)[0][4][0]
         except socket_error as ex:
             cls.err("DomainRecord[{0}] cannot be resolved because of:{1}" \
                      .format(hostname, ex))

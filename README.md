@@ -1,5 +1,6 @@
 ## aliyun-ddns-client(v0.3)
 
+Modified by jin-li to use it in U.S.
 Python DDNS client for Aliyun(http://www.hdget.com/aliyun-ddns-client)
 
 ### LIMITATION

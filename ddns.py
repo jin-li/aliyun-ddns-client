@@ -37,9 +37,13 @@ def main():
         DDNSUtils.err_and_exit("Failed to get current public IP")
 
     for local_record in record_manager.local_record_list:
-        dns_resolved_ip = DDNSUtils.get_dns_resolved_ip(local_record.subdomain,
-                                                        local_record.domainname)
-        
+        if local_record.type == "A":
+            dns_resolved_ip = DDNSUtils.get_dns_resolved_ipv4(local_record.subdomain,
+                                                            local_record.domainname)
+        else:
+            dns_resolved_ip = DDNSUtils.get_dns_resolved_ipv6(local_record.subdomain,
+                                                            local_record.domainname)
+
         if local_record.type=="AAAA":
             current_ip = DDNSUtils.get_interface_ipv6_address(local_record.interface)
         else:
@@ -48,6 +52,7 @@ def main():
         if current_ip == dns_resolved_ip:
             DDNSUtils.info("Skipped as no changes for DomainRecord" \
                            "[{rec.subdomain}.{rec.domainname}]".format(rec=local_record))
+            DDNSUtils.info("Remote record is {0}, current IP is {1}".format(dns_resolved_ip, current_ip))
             continue
 
         # If current public IP doesn't equal to current DNS resolved ip, only in three cases:
@@ -61,8 +66,9 @@ def main():
             continue
 
         if current_ip == remote_record.value:
-            DDNSUtils.info("Skipped as we already updated DomainRecord" \
+            DDNSUtils.info("Skipped as no changes for DomainRecord" \
                            "[{rec.subdomain}.{rec.domainname}]".format(rec=local_record))
+            DDNSUtils.info("Remote record is {0}, current IP is {1}".format(remote_record.value, current_ip))
             continue
 
         # if we can fetch remote record and record's value doesn't equal to public IP
